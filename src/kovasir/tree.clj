@@ -1,4 +1,4 @@
-(ns kovasir.exec)
+(ns kovasir.tree)
 
 (def ^:dynamic *trace*)
 (def ^:dynamic *defs* nil)
