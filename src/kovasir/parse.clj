@@ -30,9 +30,9 @@
 
 (defmethod parse-seq 'let
   [[_ bindings & body]]
-  (if-let [[sym init & more] (seq bindings)]
+  (if-let [[name init & more] (seq bindings)]
     {:op :let
-     :sym sym
+     :name name
      :init (parse init)
      :expr (parse-seq (list* 'let (vec more) body))}
     (parse (list* 'do body))))
@@ -51,7 +51,7 @@
    :then (parse then)
    :else (parse else)})
 
-;TODO fn + recur
+;TODO loop/recur
 
 (comment
 

@@ -2,11 +2,11 @@
 
 (def ^:dynamic *graph*)
 (def ^:dynamic *defs*)
-(def ^:dynamic *ctx*)
-(def ^:dynamic *eff* #{})
+(def ^:dynamic *ctx*) ;TODO delete/replace me?
+(def ^:dynamic *eff* #{}) ;TODO conservative now. Handle known pure fns.
+(def ^:dynamic *names* {})
 
-(def empty-graph {:bind {}
-                  :free #{}
+(def empty-graph {:nodes {}
                   :root nil})
 
 (def empty-context {:root nil})
@@ -34,24 +34,21 @@
     (block ast)
     *graph*))
 
-(defn bind!
-  ([x]
-   (bind! (gensym) x))
-  ([sym x]
-   (if-let [[_ y] (find *defs* x)]
-     y
-     (do
-       (update! *defs* assoc x sym)
-       (update! *graph* assoc-in [:bind sym] x)
-       (update! *ctx* assoc :root sym)
-       sym))))
+(defn bind! [x]
+  (if-let [[_ y] (find *defs* x)]
+    y
+    (let [id (-> *graph* :nodes count inc)]
+      (update! *defs* assoc x id)
+      (update! *graph* assoc-in [:nodes id] x)
+      (update! *ctx* assoc :root id)
+      id)))
 
 
 (defmethod dfg :ref
   [{:keys [name]}]
-  (when-not (contains? (:bound *graph*) name)
-    (update! *graph* update-in [:free] conj name))
-  name)
+  (if-let [[_ bound] (find *names* name)]
+    bound
+    name))
 
 (defmethod dfg :const
   [{:keys [value]}]
@@ -81,6 +78,15 @@
             :then (block then)
             :else (block else)})))
 
+(defmethod dfg :let
+  [{:keys [name init expr]}]
+  (let [bound (dfg init)]
+    (binding [*names* (assoc *names* name bound)
+              *eff* (conj *eff* bound)]
+      (dfg expr))))
+
+;TODO loop/recur
+
 
 
 (comment
@@ -94,5 +100,7 @@
   (party '(do (f "foo") (+ 2 2)))
   (party '(do (f "foo") (do (+ 2 2) (+ 5 6))))
   (party '(if 1 2 3))
+  (party '(let [x "a"] x))
+  (party '(let [x "a" y "b"] (str x y)))
 
 )
