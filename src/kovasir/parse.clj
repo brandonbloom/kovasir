@@ -39,12 +39,10 @@
 
 (defmethod parse-seq 'do
   [[_ & body]]
-  (if (seq body)
-    (let [expr (-> body last parse)]
-      (if-let [stmts (->> body butlast (map parse) seq)]
-        {:op :do :stmts (vec stmts) :expr expr}
-        expr))
-    {:op :const :value nil}))
+  (cond
+    (next body) {:op :do :stmts (mapv parse body)}
+    (seq body) (parse (first body))
+    :else {:op :const :value nil}))
 
 (defmethod parse-seq 'if
   [[_ test then else]]
@@ -52,6 +50,8 @@
    :test (parse test)
    :then (parse then)
    :else (parse else)})
+
+;TODO fn + recur
 
 (comment
 
