@@ -1,6 +1,7 @@
 (ns kovasir.shake)
 
 ;XXX This works (worked?), but conservative effect deps makes it hard to tell.
+;TODO Can this be easily folded in to instruction scheduling?
 
 (defn live [{:keys [nodes root]}]
   (let [out (atom {})
@@ -24,6 +25,5 @@
                 y "b"
                 z "c"]
             (str x z)))
-
 
 )

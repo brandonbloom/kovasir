@@ -52,6 +52,13 @@
    :else (parse else)})
 
 ;TODO loop/recur
+;TODO fn
+
+(defmethod parse-seq 'fn
+  [[_ params & body]]
+  {:op :fn
+   :params params
+   :expr (parse-seq (list* 'do body))})
 
 (comment
 
@@ -70,5 +77,6 @@
   (party '(let [x 1 y 2] (+ x y)))
   (party '(if 1 2 3))
   (party '(if 1 2))
+  (party '(fn [x y] 1 2 3))
 
 )
