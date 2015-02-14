@@ -102,40 +102,47 @@
 ;         unmark n temporarily
 ;         add n to head of L
 (defn toposort [nodes root]
+  ;TODO: ensure nodes/deps are ordered to force unique schedule
   (let [v (atom [])
         nodes (atom nodes)]
     (letfn [(visit [id]
-              (println "visit" id)
               (when-let [n (@nodes id)]
-                (println id "is new")
                 (swap! nodes dissoc id)
                 (doseq [dep (:deps n)]
                   (visit dep))
-                (swap! v conj n)))]
+                (swap! v conj [id n])))]
       (while (seq @nodes)
-        (visit (-> @nodes keys sort first)))) ; sort ensures unique ordering
+        (visit (-> @nodes keys first))))
     @v))
 
 
 (defn schedule [{:keys [nodes root]}]
   (fipp.edn/pprint (top-level nodes root))
+  ;TODO return top-level block + unscheduled nodes, let codegen drive recursion
   (toposort (select-keys nodes (top-level nodes root)) root))
-
 
 
 (comment
 
   (require 'kovasir.parse)
   (require 'kovasir.graph)
+  (require 'kovasir.codegen.clj)
   (defn prepare [x]
     (-> x kovasir.parse/parse kovasir.graph/program))
   (defn party [x]
-    (-> x prepare schedule fipp.edn/pprint))
+    (-> x prepare schedule
+        kovasir.codegen.clj/block fipp.clojure/pprint
+        ;fipp.edn/pprint
+        ))
 
   (party '(let [x "a"
                 y "b"
                 z "c"]
             (str x z)))
+
+  (party '(if b
+            (f (+ 2 2) y)
+            (f x (+ 2 2))))
 
   (party '(let [f (fn [x] (+ x y (+ 5 10)))
                 a (+ 2 4)]

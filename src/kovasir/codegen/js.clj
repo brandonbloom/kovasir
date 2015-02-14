@@ -1,4 +1,6 @@
-(ns kovasir.codegen)
+(ns kovasir.codegen.js)
+
+;;TODO bring up to date w/ graph&schedule
 
 (defmulti emit first)
 

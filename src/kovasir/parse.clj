@@ -52,7 +52,6 @@
    :else (parse else)})
 
 ;TODO loop/recur
-;TODO fn
 
 (defmethod parse-seq 'fn
   [[_ params & body]]

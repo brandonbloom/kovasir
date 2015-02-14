@@ -26,7 +26,7 @@
 (defn block [ast]
   (binding [*ctx* empty-context]
     (let [ret (dfg ast)]
-      (update! *graph* assoc :root ret)
+      (update! *graph* assoc :root ret) ;TODO calculate another way?
       ret)))
 
 (defn program [ast]
