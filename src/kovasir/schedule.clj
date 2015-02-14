@@ -67,7 +67,7 @@
 ;
 ; 4. Continue with 2 until a fixpoint is reached.
 (defn top-level [nodes root]
-  (fipp.edn/pprint nodes)
+  ;(fipp.edn/pprint nodes)
   (loop [top #{root}]
     ;(fipp.edn/pprint (reachable nodes top))
     ;(fipp.edn/pprint (bound nodes))
@@ -116,47 +116,14 @@
     @v))
 
 
+;TODO return top-level block + unscheduled nodes, let codegen drive recursion
 (defn schedule [{:keys [nodes root]}]
-  (fipp.edn/pprint (top-level nodes root))
-  ;TODO return top-level block + unscheduled nodes, let codegen drive recursion
-  (toposort (select-keys nodes (top-level nodes root)) root))
-
-
-(comment
-
-  (require 'kovasir.parse)
-  (require 'kovasir.graph)
-  (require 'kovasir.codegen.clj)
-  (defn prepare [x]
-    (-> x kovasir.parse/parse kovasir.graph/program))
-  (defn party [x]
-    (-> x prepare schedule
-        kovasir.codegen.clj/block fipp.clojure/pprint
-        ;fipp.edn/pprint
-        ))
-
-  (party '(let [x "a"
-                y "b"
-                z "c"]
-            (str x z)))
-
-  (party '(if b
-            (f (+ 2 2) y)
-            (f x (+ 2 2))))
-
-  (party '(let [f (fn [x] (+ x y (+ 5 10)))
-                a (+ 2 4)]
-            (f a)))
-
-  (-> '
-      ;(fn [x] (+ x y))
-      (fn [x] x)
-      kovasir.parse/parse
-      kovasir.graph/program
-      ;:nodes
-      ;bound
-      ;nested
-      ;(get-in [:nodes '$2]
-      fipp.edn/pprint)
-
-)
+  (let [top-ids (top-level nodes root)
+        ;_ (fipp.edn/pprint top-ids)
+        top-nodes (select-keys nodes top-ids)
+        bottom-nodes (into {} (for [[id n :as kvp] nodes
+                                    :when (not (contains? top-ids id))]
+                                kvp))
+        block (toposort top-nodes root)]
+    {:block block
+     :unscheduled bottom-nodes}))

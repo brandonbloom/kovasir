@@ -77,7 +77,7 @@
 
 (defmethod dfg :if
   [{:keys [test then else]}]
-  (let [b (bind! (dfg test))
+  (let [b (dfg test)
         t (block then)
         e (block else)]
     (bind! {:op :if :test b :then t :else e
@@ -110,11 +110,11 @@
   (defn party [x]
     (-> x kovasir.parse/parse program fipp.edn/pprint))
 
-  (party '1)
-  (party '(+ (* 3 10) (* 2 5) (* 2 5) foo))
+  (party '100)
+  (party '(+ (* 300 1000) (* 200 500) (* 200 500) foo))
   (party '(do (f "foo") (+ 2 2)))
-  (party '(do (f "foo") (do (+ 2 2) (+ 5 6))))
-  (party '(if 1 2 3))
+  (party '(do (f "foo") (do (+ 200 200) (+ 500 600))))
+  (party '(if 100 200 300))
   (party '(let [x "a"] x))
   (party '(let [x "a" y "b"] (str x y)))
   (party '(fn [x] (str x y)))
