@@ -51,13 +51,16 @@
    :then (parse then)
    :else (parse else)})
 
-;TODO loop/recur
-
 (defmethod parse-seq 'fn
   [[_ params & body]]
   {:op :fn
    :params params
    :expr (parse-seq (list* 'do body))})
+
+(defmethod parse-seq 'loop
+  [[_ bindings & body]]
+  (parse-seq (list* (list* 'fn (vec (take-nth 2 bindings)) body)
+                    (take-nth 2 (next bindings)))))
 
 (comment
 
@@ -77,5 +80,6 @@
   (party '(if 1 2 3))
   (party '(if 1 2))
   (party '(fn [x y] 1 2 3))
+  (party '(loop [x 1 y 2] (recur (inc x) (dec y))))
 
 )
