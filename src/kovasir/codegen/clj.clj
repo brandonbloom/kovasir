@@ -6,6 +6,7 @@
     (symbol (str "$" id))
     id))
 
+; (ns-unmap *ns* 'gen)
 (defmulti gen (fn [nodes {:keys [op] :as xx}] op))
 
 (defn gen-block
@@ -37,6 +38,12 @@
 (defmethod gen :if
   [nodes {:keys [test then else]}]
   (list 'if (->sym test) (gen-block nodes then) (gen-block nodes else)))
+
+(defmethod gen :loop
+  [nodes {:keys [bindings expr]}]
+  (list 'loop (vec (apply concat (for [[param init] bindings]
+                                   [(->sym param) (->sym init)])))
+        (gen-block nodes expr)))
 
 
 (comment
@@ -70,21 +77,23 @@
               (f a y)
               (f x a))))
 
-  (party '(loop [x 0]
-            (recur (+ (inc x) (* 2 2)))))
-
   (party '(let [f (fn [x] (+ x y (+ 500 1000)))
                 a (+ 200 400)]
             (f a)))
 
+  (party '(loop [x 0]
+            (recur (+ (inc x) (* 2 2)))))
+
   (-> '
       ;(fn [x] (+ x y))
-      (fn [x] x)
+      ;(fn [x] x)
+      (loop [x 0]
+        (recur (+ (inc x) (* 2 2))))
       kovasir.parse/parse
       kovasir.graph/program
       ;:nodes
       ;bound
-      ;nested
+      ;kovasir.schedule/nested
       ;(get-in [:nodes '$2]
       fipp.edn/pprint)
 

@@ -47,7 +47,6 @@
   [node]
   (set/difference (:deps node) (:hot node) (:cold node)))
 
-
 ; Code Motion Algorithm:
 ;
 ; Compute the set L of top level statements for the current block, from a set

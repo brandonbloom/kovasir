@@ -93,6 +93,17 @@
       (dfg expr))))
 
 ;TODO loop/recur -- :hot + boundSyms ?
+(defmethod dfg :loop
+  [{:keys [bindings expr]}]
+  (let [syms (mapv first bindings)
+        params (vec (repeatedly (count syms) fresh!))
+        inits (mapv (comp bind! second) bindings)
+        names (into {} (map vector syms params))
+        bindings (mapv vector params inits)]
+    (binding [*names* (merge *names* names)]
+      (let [expr (block expr)]
+        (bind! {:op :loop :bindings bindings :expr expr
+                :deps (set inits) :bound (set params) :hot #{expr}})))))
 
 (defmethod dfg :fn
   [{:keys [params expr]}]
@@ -100,7 +111,7 @@
     (binding [*eff* #{}
               *names* (apply assoc *names* (interleave params ids))]
       (bind! {:op :fn :params params
-              :bound ids :expr (block expr)}))))
+              :bound (set ids) :expr (block expr)}))))
 
 
 
@@ -118,5 +129,6 @@
   (party '(let [x "a"] x))
   (party '(let [x "a" y "b"] (str x y)))
   (party '(fn [x] (str x y)))
+  (party '(loop [x 100 y 200] 300))
 
 )
