@@ -23,11 +23,14 @@
 ; including the node where the symbol is bound:
 ; U(s) = {s} union { g in E | syms(findDefinition(g)) intersect U(s) <>􏰀
 ;                    && s notIn boundSyms(findDefinition(g))) }
-(defn usages [nodes sym]
-  ;TODO handle boundSyms
-  (into {} (for [[k {:as v :keys [deps]}] nodes
-                 :when (contains? deps sym)]
-             [k v])))
+(defn usages [nodes id]
+  (into (if-let [n (nodes id)]
+          {id n}
+          {})
+        (for [[k {:as v :keys [deps bound]}] nodes
+              :when (and (contains? deps id)
+                         (not (contains? bound id)))]
+          [k v])))
 
 ; We collect all bound symbols and their dependencies. These cannot live on
 ; the current level, they are forced inside:
@@ -75,11 +78,14 @@
     (let [inside (nested nodes)
           outside (apply dissoc nodes inside)
           top* (reachable outside top ambient)
-          ;hot (for [t top*
-          ;          hot
-          ;          ] (mapcat (comp :hot nodes) top*)
-          ;fringe (remove top hot)
-          ;top* (
+          hot (for [t top*
+                    hot (-> t nodes :hot)
+                    :when (not (inside hot))]
+                hot)
+          ;_ (println "<<------------")
+          ;_ (fipp.edn/pprint {:top* top* :hot hot :inside inside})
+          ;_ (println "------------>>")
+          top* (into top* hot)
           ]
       (if (= top top*)
         top
@@ -116,7 +122,8 @@
 
 
 ;TODO return top-level block + unscheduled nodes, let codegen drive recursion
-(defn schedule [{:keys [nodes root]}]
+(defn schedule [{:keys [nodes root] :as xx}]
+  ;(fipp.edn/pprint xx)
   (let [top-ids (top-level nodes root)
         ;_ (fipp.edn/pprint top-ids)
         top-nodes (select-keys nodes top-ids)

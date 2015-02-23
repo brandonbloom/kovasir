@@ -15,6 +15,7 @@
   ([graph]
    (let [{:keys [block unscheduled]} (schedule graph)
          ret (some->> (peek block) second (gen (:nodes graph)))
+         ;_ (prn "!!" block unscheduled)
          stmts (pop block)]
      (if (seq stmts)
        `(let [~@(mapcat (fn [[id stmt]]
@@ -68,11 +69,7 @@
             (f (+ 123 123) y)
             (f x (+ 123 123))))
 
-  (party '(if 100
-            (f (+ 123 123) y)
-            (f x (+ 123 123))))
-
-  (party '(let [a (+ 123 123)]
+  (party '(let [a (+ 123 456)]
             (if 100
               (f a y)
               (f x a))))
@@ -91,9 +88,9 @@
         (recur (+ (inc x) (* 2 2))))
       kovasir.parse/parse
       kovasir.graph/program
-      ;:nodes
-      ;bound
-      ;kovasir.schedule/nested
+      :nodes (kovasir.schedule/usages 1)
+      ;:nodes kovasir.schedule/bound
+      ;:nodes kovasir.schedule/nested
       ;(get-in [:nodes '$2]
       fipp.edn/pprint)
 

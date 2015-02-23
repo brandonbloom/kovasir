@@ -1,5 +1,8 @@
 (ns kovasir.graph)
 
+;;TODO consider renaming to dataflow + creating a separate explicit control
+;; flow graph before going to codegen. The control flow graph has basic blocks.
+
 (def ^:dynamic *graph*)
 (def ^:dynamic *defs*)
 (def ^:dynamic *ctx*) ;TODO delete/replace me?
