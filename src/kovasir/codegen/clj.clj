@@ -32,6 +32,16 @@
   [nodes {:keys [f args]}]
   (list* (->sym f) (map ->sym args)))
 
+;;TODO An earlier step should eliminate the hot/cold nodes.
+
+(defmethod gen :cold
+  [nodes {:keys [expr]}]
+  (gen nodes (nodes expr)))
+
+(defmethod gen :hot
+  [nodes {:keys [expr]}]
+  (gen nodes (nodes expr)))
+
 (defmethod gen :fn
   [nodes {:keys [params expr]}]
   `(fn ~(mapv ->sym params) ~(gen-block nodes expr)))
@@ -84,13 +94,16 @@
   (-> '
       ;(fn [x] (+ x y))
       ;(fn [x] x)
-      (loop [x 0]
-        (recur (+ (inc x) (* 2 2))))
+      (if x y z)
+      ;(loop [x 0]
+      ;  (recur (+ (inc x) (* 2 2))))
       kovasir.parse/parse
       kovasir.graph/program
-      :nodes (kovasir.schedule/usages 1)
+      kovasir.schedule/schedule
+      ;:nodes (kovasir.schedule/usages 1)
       ;:nodes kovasir.schedule/bound
       ;:nodes kovasir.schedule/nested
+      ;:nodes (kovasir.schedule/ambient 3)
       ;(get-in [:nodes '$2]
       fipp.edn/pprint)
 

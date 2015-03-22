@@ -1,6 +1,12 @@
 (ns kovasir.schedule
   (:require [clojure.set :as set]))
 
+(defn get-deps
+  [nodes id pred]
+  (set (for [n (:deps (nodes id))
+             :when (pred nodes n)]
+         n)))
+
 ; To implement this algorithm, we need to determine the set G of nodes that
 ; are forced inside and may not be part of the top level. We start with the
 ; block result R and a graph E that has all unnecessary nodes removed (DCE
@@ -8,7 +14,7 @@
 
 ; E = R union syms(E map findDefinition)
 ;;TODO refactor with dead code elimination etc
-(defn reachable [nodes roots depf]
+(defn reachable [nodes roots pred]
   (loop [out #{}
          in (seq roots)]
     (if in
@@ -16,7 +22,7 @@
         (if (contains? out n)
           (recur out in)
           (recur (conj out n)
-                 (into in (depf (nodes n))))))
+                 (into in (get-deps nodes n pred)))))
       out)))
 
 ; We then need a way to find all uses of a given symbol s, up to but not
@@ -43,12 +49,15 @@
   (apply set/union (map #(usages nodes %) (bound nodes))))
 
 
+(defn hot? [nodes id]
+  (= :hot (:op (nodes id))))
 
+(defn cold? [nodes id]
+  (= :cold (:op (nodes id))))
 
-(defn ambient
-  "Dependencies which are neither not nor cold."
-  [node]
-  (set/difference (:deps node) (:hot node) (:cold node)))
+(defn ambient? [nodes id]
+  (not (or (hot? nodes id) (cold? nodes id))))
+
 
 ; Code Motion Algorithm:
 ;
@@ -77,9 +86,9 @@
     ;(fipp.edn/pprint (usages nodes 1))
     (let [inside (nested nodes)
           outside (apply dissoc nodes inside)
-          top* (reachable outside top ambient)
+          top* (reachable outside top ambient?)
           hot (for [t top*
-                    hot (-> t nodes :hot)
+                    hot (-> t nodes :hot) ;XXX hot (get-deps nodes t hot?)
                     :when (not (inside hot))]
                 hot)
           ;_ (println "<<------------")
@@ -130,6 +139,8 @@
         bottom-nodes (into {} (for [[id n :as kvp] nodes
                                     :when (not (contains? top-ids id))]
                                 kvp))
+        ;_ (fipp.edn/pprint bottom-nodes)
         block (toposort top-nodes root)]
+    ;(fipp.edn/pprint block)
     {:block block
      :unscheduled bottom-nodes}))
