@@ -78,13 +78,18 @@
           (dfg (first stmts))
           (next stmts)))
 
+(defn cold! [id]
+  (bind! {:op :cold :expr id :deps #{id}}))
+
+(defn hot! [id]
+  (bind! {:op :hot :expr id :deps #{id}}))
+
 (defmethod dfg :if
   [{:keys [test then else]}]
   (let [b (dfg test)
-        t (block then)
-        e (block else)]
-    (bind! {:op :if :test b :then t :else e
-            :deps #{b t e} :cold #{t e}})))
+        t (cold! (block then))
+        e (cold! (block else))]
+    (bind! {:op :if :test b :then t :else e :deps #{b t e}})))
 
 (defmethod dfg :let
   [{:keys [name init expr]}]
@@ -104,9 +109,9 @@
         names (into {} (map vector syms params))
         bindings (mapv vector params inits)]
     (binding [*names* (merge *names* names)]
-      (let [expr (block expr)]
+      (let [expr (hot! (block expr))]
         (bind! {:op :loop :bindings bindings :expr expr
-                :deps (set inits) :bound (set params) :hot #{expr}})))))
+                :deps (set inits) :bound (set params)})))))
 
 (defmethod dfg :fn
   [{:keys [params expr]}]
