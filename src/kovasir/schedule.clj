@@ -25,9 +25,28 @@
                  (into in (get-deps nodes n pred)))))
       out)))
 
+(defn fringe [nodes roots inside]
+  ;(fipp.edn/pprint {:nodes nodes
+  ;                  :roots roots
+  ;                  :inside inside
+  ;                  :in (seq (mapcat #(get-deps nodes % hot?) roots))})
+  (loop [visited #{}
+         out #{}
+         in (seq (mapcat #(get-deps nodes % hot?) roots))]
+    (if in
+      (let [[n & in] in]
+        (cond
+          (contains? visited n)
+            (recur visited out in)
+          (not (inside n))
+            (recur (conj visited n) (conj out n) in)
+          :else
+            (recur (conj visited n) out (get-deps nodes n (constantly true)))))
+      out)))
+
 ; We then need a way to find all uses of a given symbol s, up to but not
 ; including the node where the symbol is bound:
-; U(s) = {s} union { g in E | syms(findDefinition(g)) intersect U(s) <>􏰀
+; U(s) = {s} union { g in E | syms(findDefinition(g)) intersect U(s) <>
 ;                    && s notIn boundSyms(findDefinition(g))) }
 (defn usages [nodes id]
   (into (if-let [n (nodes id)]
@@ -73,7 +92,7 @@
 ;
 ; 3. For each hot ref from L to a statement in E−L, follow any links through G,
 ; i.e. the nodes that are forced inside, if there are any. The first
-; non-forced-inside nodes (the “hot fringe”) become top level as well (add to
+; non-forced-inside nodes (the "hot fringe") become top level as well (add to
 ; L).
 ;
 ; 4. Continue with 2 until a fixpoint is reached.
@@ -85,15 +104,15 @@
     ;(fipp.edn/pprint (nested nodes))
     ;(fipp.edn/pprint (usages nodes 1))
     (let [inside (nested nodes)
-          outside (apply dissoc nodes inside)
+          outside (apply dissoc nodes (keys inside))
           top* (reachable outside top ambient?)
-          hot (for [t top*
-                    hot (-> t nodes :hot) ;XXX hot (get-deps nodes t hot?)
-                    :when (not (inside hot))]
-                hot)
-          ;_ (println "<<------------")
-          ;_ (fipp.edn/pprint {:top* top* :hot hot :inside inside})
-          ;_ (println "------------>>")
+          hot (fringe nodes top* inside)
+          _ (println "<<------------")
+          _ (fipp.edn/pprint {:top* top*
+                              :hot hot
+                              :inside inside
+                              :outside outside})
+          _ (println "------------>>")
           top* (into top* hot)
           ]
       (if (= top top*)
