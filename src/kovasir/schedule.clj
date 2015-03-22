@@ -41,31 +41,43 @@
           (not (inside n))
             (recur (conj visited n) (conj out n) in)
           :else
-            (recur (conj visited n) out (get-deps nodes n (constantly true)))))
+            (recur (conj visited n)
+                   out
+                   (into in (get-deps nodes n (constantly true))))))
       out)))
 
 ; We then need a way to find all uses of a given symbol s, up to but not
 ; including the node where the symbol is bound:
 ; U(s) = {s} union { g in E | syms(findDefinition(g)) intersect U(s) <>
 ;                    && s notIn boundSyms(findDefinition(g))) }
-(defn usages [nodes id]
-  (into (if-let [n (nodes id)]
-          {id n}
-          {})
-        (for [[k {:as v :keys [deps bound]}] nodes
-              :when (and (contains? deps id)
-                         (not (contains? bound id)))]
-          [k v])))
+
+(defn children
+  "Returns set of all ids that directly depend on the given ids."
+  [nodes ids]
+  (set (for [[n node] nodes
+             :let [deps (:deps node)]
+             :when (seq (set/intersection deps ids))]
+         n)))
+
+(defn descendents
+  "Returns set of all ids that directly or indirectly depend on the given ids."
+  [nodes ids]
+  (->> ids
+    (iterate #(children nodes %))
+    (take-while seq)
+    next
+    (apply set/union)))
 
 ; We collect all bound symbols and their dependencies. These cannot live on
 ; the current level, they are forced inside:
+
 ; B = boundSyms (E map findDefinition)
 (defn bound [nodes]
   (set (mapcat :bound (vals nodes))))
 
 ; G = union (B map U) // must inside
 (defn nested [nodes]
-  (apply set/union (map #(usages nodes %) (bound nodes))))
+  (apply set/union (map #(descendents nodes #{%}) (bound nodes))))
 
 
 (defn hot? [nodes id]
@@ -104,11 +116,12 @@
     ;(fipp.edn/pprint (nested nodes))
     ;(fipp.edn/pprint (usages nodes 1))
     (let [inside (nested nodes)
-          outside (apply dissoc nodes (keys inside))
+          outside (apply dissoc nodes inside)
           top* (reachable outside top ambient?)
           hot (fringe nodes top* inside)
           _ (println "<<------------")
-          _ (fipp.edn/pprint {:top* top*
+          _ (fipp.edn/pprint {:top top
+                              :top* top*
                               :hot hot
                               :inside inside
                               :outside outside})

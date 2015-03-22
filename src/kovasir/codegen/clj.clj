@@ -104,7 +104,8 @@
       kovasir.parse/parse
       kovasir.graph/program
       kovasir.schedule/schedule
-      ;:nodes (kovasir.schedule/usages 1)
+      ;:nodes (kovasir.schedule/children #{1})
+      ;:nodes (kovasir.schedule/descendents #{1})
       ;:nodes kovasir.schedule/bound
       ;:nodes kovasir.schedule/nested
       ;:nodes (kovasir.schedule/ambient 3)
