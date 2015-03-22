@@ -32,6 +32,10 @@
   [nodes {:keys [f args]}]
   (list* (->sym f) (map ->sym args)))
 
+(defmethod gen :recur
+  [nodes {:keys [args]}]
+  (list* 'recur (map ->sym args)))
+
 ;;TODO An earlier step should eliminate the hot/cold nodes.
 
 (defmethod gen :cold

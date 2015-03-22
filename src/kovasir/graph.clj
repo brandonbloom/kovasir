@@ -100,18 +100,29 @@
               *eff* (conj *eff* bound)]
       (dfg expr))))
 
-;TODO loop/recur -- :hot + boundSyms ?
+
 (defmethod dfg :loop
   [{:keys [bindings expr]}]
   (let [syms (mapv first bindings)
         params (vec (repeatedly (count syms) fresh!))
         inits (mapv (comp bind! second) bindings)
         names (into {} (map vector syms params))
+        ;; Loop bounds a dynamic "recur target" which recur depends on.
+        target (fresh!)
+        names (assoc names :recur target)
         bindings (mapv vector params inits)]
     (binding [*names* (merge *names* names)]
       (let [expr (hot! (block expr))]
         (bind! {:op :loop :bindings bindings :expr expr
-                :deps (set inits) :bound (set params)})))))
+                :deps (conj (set inits) expr)
+                :bound (conj (set params) target)})))))
+
+(defmethod dfg :recur
+  [{:keys [args]}]
+  (let [node {:op :recur :args (mapv dfg args)}
+        node (assoc node :deps (into *eff* (:args node)))
+        node (update-in node [:deps] conj (*names* :recur))]
+    (bind! node)))
 
 (defmethod dfg :fn
   [{:keys [params expr]}]
@@ -138,5 +149,6 @@
   (party '(let [x "a" y "b"] (str x y)))
   (party '(fn [x] (str x y)))
   (party '(loop [x 100 y 200] 300))
+  (party '(loop [] (recur)))
 
 )

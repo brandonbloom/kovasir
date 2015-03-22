@@ -57,19 +57,16 @@
    :params params
    :expr (parse-seq (list* 'do body))})
 
-;; loop as fn + call
-;(defmethod parse-seq 'loop
-;  [[_ bindings & body]]
-;  (parse-seq (list* (list* 'fn (vec (take-nth 2 bindings)) body)
-;                    (take-nth 2 (next bindings)))))
-
-;; loop as separate primitive
 (defmethod parse-seq 'loop
   [[_ bindings & body]]
   {:op :loop
    :bindings (->> bindings (partition 2) (mapv (fn [[sym init]]
                                                  [sym (parse init)])))
    :expr (parse-seq (list* 'do body))})
+
+(defmethod parse-seq 'recur
+  [[_ & xs]]
+  {:op :recur :args (mapv parse xs)})
 
 (comment
 
