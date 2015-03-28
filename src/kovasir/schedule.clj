@@ -77,7 +77,7 @@
 
 ; G = union (B map U) // must inside
 (defn nested [nodes]
-  (apply set/union (map #(descendents nodes #{%}) (bound nodes))))
+  (descendents nodes (bound nodes)))
 
 
 (defn hot? [nodes id]
@@ -126,8 +126,7 @@
                               :inside inside
                               :outside outside})
           _ (println "------------>>")
-          top* (into top* hot)
-          ]
+          top* (into top* hot)]
       (if (= top top*)
         top
         (recur top*)))))
@@ -164,15 +163,17 @@
 
 ;TODO return top-level block + unscheduled nodes, let codegen drive recursion
 (defn schedule [{:keys [nodes root] :as xx}]
+  ;(println "-------")
   ;(fipp.edn/pprint xx)
-  (let [top-ids (top-level nodes root)
-        ;_ (fipp.edn/pprint top-ids)
-        top-nodes (select-keys nodes top-ids)
+  (let [order (toposort nodes root)
+        ;_ (fipp.edn/pprint order)
+        top (top-level nodes root)
+        ;_ (fipp.edn/pprint top)
         bottom-nodes (into {} (for [[id n :as kvp] nodes
-                                    :when (not (contains? top-ids id))]
+                                    :when (not (contains? top id))]
                                 kvp))
         ;_ (fipp.edn/pprint bottom-nodes)
-        block (toposort top-nodes root)]
+        block (filterv #(top (first %)) order)]
     ;(fipp.edn/pprint block)
     {:block block
      :unscheduled bottom-nodes}))

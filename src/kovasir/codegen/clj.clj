@@ -103,10 +103,9 @@
         (recur (+ (inc x) (* 2 2))))
       kovasir.parse/parse
       kovasir.graph/program
-      kovasir.schedule/schedule
+      ;kovasir.schedule/schedule
       ;:nodes (kovasir.schedule/children #{1})
       ;:nodes (kovasir.schedule/descendents #{1})
-      ;:nodes kovasir.schedule/bound
       ;:nodes kovasir.schedule/nested
       ;:nodes (kovasir.schedule/ambient 3)
       ;(get-in [:nodes '$2]
