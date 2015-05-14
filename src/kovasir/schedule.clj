@@ -25,6 +25,15 @@
                  (into in (get-deps nodes n pred)))))
       out)))
 
+(defn hot? [nodes id]
+  (= :hot (:op (nodes id))))
+
+(defn cold? [nodes id]
+  (= :cold (:op (nodes id))))
+
+(defn ambient? [nodes id]
+  (not (or (hot? nodes id) (cold? nodes id))))
+
 (defn fringe [nodes roots inside]
   ;(fipp.edn/pprint {:nodes nodes
   ;                  :roots roots
@@ -79,15 +88,6 @@
 (defn nested [nodes]
   (descendents nodes (bound nodes)))
 
-
-(defn hot? [nodes id]
-  (= :hot (:op (nodes id))))
-
-(defn cold? [nodes id]
-  (= :cold (:op (nodes id))))
-
-(defn ambient? [nodes id]
-  (not (or (hot? nodes id) (cold? nodes id))))
 
 
 ; Code Motion Algorithm:
