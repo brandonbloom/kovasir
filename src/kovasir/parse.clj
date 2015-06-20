@@ -54,6 +54,7 @@
 (defmethod parse-seq 'fn
   [[_ params & body]]
   {:op :fn
+   ;XXX name
    :params params
    :expr (parse-seq (list* 'do body))})
 
@@ -67,6 +68,8 @@
 (defmethod parse-seq 'recur
   [[_ & xs]]
   {:op :recur :args (mapv parse xs)})
+
+;XXX letfn
 
 (comment
 
@@ -85,7 +88,10 @@
   (party '(let [x 1 y 2] (+ x y)))
   (party '(if 1 2 3))
   (party '(if 1 2))
+  (party '(fn []))
   (party '(fn [x y] 1 2 3))
   (party '(loop [x 1 y 2] (recur (inc x) (dec y))))
+  (party '(f x))
+  (party '(f (g x)))
 
 )
