@@ -15,9 +15,7 @@
 
 (defn bind!
   ([x]
-   (if (ref? x)
-     (:name x)
-     (bind! (gensym) x)))
+   (bind! (gensym) x))
   ([sym x]
     (set! *block* (conj *block* [sym x]))
     sym))
@@ -25,8 +23,11 @@
 (defmethod anf :default [ast]
   (fipp.edn/pprint [:XXX ast]))
 
-(defmethod anf :ref [ast] (:name ast))
-(defmethod anf :const [ast] (bind! ast))
+(defmethod anf :ref [ast]
+  (bind! ast))
+
+(defmethod anf :const [ast]
+  (bind! ast))
 
 (defmethod anf :if [ast]
   (-> ast
@@ -80,6 +81,8 @@
 (party '(loop [] 1))
 (party '(loop [] (recur)))
 (party '(loop [x 1] (recur 2)))
+(party '(if (f x) y z))
+(party '(fn [x] (f x)))
 
 (party '(fn [n]
           (if (<= n 1)
