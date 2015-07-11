@@ -69,17 +69,13 @@
   )
 
 ;; Maybe correct factorial encoding?
-(def fac '[[fac [n ret] (cmp)]
-           [cmp [] (invoke <= n 0 k1)]
-           [k1 [x1] (branch x1 then else)]
-           [then [] (ret 1)]
-           [else [] (head 2 1)]
-           [head [r i] (invoke <= i n k2)]
-           [k2 [x2] (branch x2 body next)]
-           [body [] (invoke + i 1 k3)]
-           [k3 [x3] (invoke * r i k4)]
-           [k4 [x4] (head x3 x4)]
-           [next [] (ret r)]])
+(def fac '[[fac [n done] (rec 1 2)]
+           [rec [r i] (invoke <= i n k1)]
+           [k1 [x1] (branch x1 body exit)]
+           [body [] (invoke * r i k2)]
+           [k2 [x2] (invoke inc i k3)]
+           [k3 [x3] (rec x2 x3)]
+           [exit [] (done r)]])
 
 (-> fac
     edn->cfg
