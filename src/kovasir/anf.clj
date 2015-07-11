@@ -68,7 +68,6 @@
 
 (comment
 
-
 (require 'kovasir.parse)
 (defn party [x]
   (-> x kovasir.parse/parse anf-block fipp.edn/pprint))
@@ -92,10 +91,8 @@
                 (recur (* r i) (inc i))
                 r)))))
 
-
 (letfn [(even? [x] (or (zero? x) (not (odd? (dec x)))))
         (odd? [x] (and (not= x 0) (even? (dec x))))]
   ...)
-
 
 )

@@ -38,74 +38,27 @@
 
 
 
-(defmulti anf->val :op)
+(ns-unmap *ns* 'anf->cfg)
+(defmulti anf->cfg (fn [[g k] ast] (prn ast) (:op ast)))
 
-(def ^:dynamic *g*)
 (def ^:dynamic *env*)
-(def ^:dynamic *k*)
 
-(defn val->call [x]
-  (if (symbol? x)
-    (list x)
-    (list 'const x)))
+(defn block->cfg [ctx xs]
+  (reduce (fn [[g k] [n e]]
+            (add-node g [n]
+            )
+          ctx
+          (reverse xs)))
 
-(defn block->val [block]
-  (assert (seq block))
-  (binding [*env* *env*]
-    (last (for [[sym expr] block]
-            (let [x (anf->val expr)
-                  id (gensym "let__")
-                  n (Node. id [] (val->call x))]
-              (set! *g* (add-node *g* n))
-              (set! *env* (assoc *env* sym id))
-              id)))))
+(defn root->cfg [root]
+  (binding [*env* {}]
+    (let [ctx [null (gensym "ret__")]]
+      (block->cfg ctx root))))
 
-(defn anf->cfg [root]
-  (binding [*g* null
-            *k* 'ret
-            *env* {}]
-    (block->val root)
-    *g*))
-
-(defmethod anf->val :const [{:keys [value]}]
-  value)
-
-(defmethod anf->val :ref [{:keys [name]}]
-  (*env* name name))
-
-(defmethod anf->val :if [{:keys [test then else]}]
-  (let [b (*env* test)
-        t (block->val then)
-        f (block->val else)
-        id (gensym "if__")
-        n (Node. id [] (list 'branch b t f))]
-    (set! *g* (add-node *g* n))
-    id))
-
-;(defmethod anf->val :do [{:keys [stmts]}]
-;  (assert false "TODO")) ;XXX
-
-(defmethod anf->val :fn [{:keys [params block]}]
-  (let [syms (mapv #(gensym (str % "__")) params)
-        _ (set! *env* (into *env* (map vector params syms)))
-        _ (prn *env*)
-        id (gensym "fn__")
-        n (Node. id syms (-> block block->val val->call))]
-    (set! *g* (add-node *g* n))
-    id))
-
-(defmethod anf->val :call [{:keys [f args]}]
-  ;XXX if symbol is known, emit it as a cfg call. If free, emit as invoke.
-  (let [id (gensym (str f "__"))
-        fsym (*env* f)
-        n (if (*env* fsym)
-            (let [asyms (mapv #(*env* % %) args)]
-              (prn "!!" fsym)
-              (Node. id [] (list* id asyms)))
-            (let [asyms (mapv #(*env* % %) (concat [f] args [*k*]))]
-              (Node. id [] (list* 'invoke asyms))))]
-    (set! *g* (add-node *g* n))
-    id))
+(defmethod anf->cfg :const [[g k] {:keys [value]}]
+  (let [id (gensym "const__")
+        g (add-node g (Node. id [] (list k value)))]
+    [g id]))
 
 
 (comment
@@ -121,10 +74,10 @@
            [k1 [x1] (branch x1 then else)]
            [then [] (ret 1)]
            [else [] (head 2 1)]
-           [head [i r] (invoke <= i n k2)]
+           [head [r i] (invoke <= i n k2)]
            [k2 [x2] (branch x2 body next)]
            [body [] (invoke + i 1 k3)]
-           [k3 [x3] (invoke * i r k4)]
+           [k3 [x3] (invoke * r i k4)]
            [k4 [x4] (head x3 x4)]
            [next [] (ret r)]])
 
@@ -138,7 +91,7 @@
 (require '[kovasir.parse :refer [parse]])
 (require '[kovasir.anf :refer [anf-block]])
 (defn party [x]
-  (-> x parse anf-block anf->cfg cfg->edn fipp.edn/pprint))
+  (-> x parse anf-block root->cfg cfg->edn fipp.edn/pprint))
 
 (party '1)
 (party '(if 1 2 3))
