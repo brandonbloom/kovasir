@@ -30,6 +30,6 @@
 '[(fac n)   []                              (rec 1 2)
   (rec r i) [b (<= i n), c (choose b t f)]  (c)
   (t)       [ri (* r i), j (inc i)]         (rec ri j)
-  (f)       []                              r]
+  (f)       []                              (identity r)]
 
 )
