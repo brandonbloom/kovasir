@@ -7,17 +7,6 @@
           {}
           prog))
 
-(def ^:dynamic *trace* false)
-
-(ns-unmap *ns* 'step)
-(defmulti step (fn [{:keys [env expr]}]
-                 (when *trace*
-                   (println)
-                   (fipp.edn/pprint env {:width 160})
-                   (prn expr)
-                   (println))
-                 (first expr)))
-
 (def boolean? (partial instance? Boolean))
 
 (defn literal? [x]
@@ -39,6 +28,17 @@
                                (-> x name symbol)])
     :else {:name x :env env}))
 
+(def ^:dynamic *trace* false)
+
+(ns-unmap *ns* 'step)
+(defmulti step (fn [{:keys [env expr]}]
+                 (when *trace*
+                   (println)
+                   (fipp.edn/pprint env {:width 160})
+                   (prn expr)
+                   (println))
+                 (first expr)))
+
 (defmethod step 'invoke [{[_ f k & args] :expr, :keys [env]}]
   {:env env
    :expr (let [f (if (namespace f) ;XXX
@@ -47,7 +47,7 @@
                args (map #(eval % env) args)]
            (list k (apply f args)))})
 
-(defmethod step 'branch [{[_ b t f] :expr, :keys [env]}]
+(defmethod step 'if [{[_ b t f] :expr, :keys [env]}]
   {:env env
    :expr (list (if (eval b env) t f))})
 
@@ -73,7 +73,7 @@
 
 (def fac '[[fac [n] (rec 1 2)]
            [rec [r i] (invoke <= k1 rec/i fac/n)]
-           [k1 [x1] (branch k1/x1 body exit)]
+           [k1 [x1] (if k1/x1 body exit)]
            [body [] (invoke * k2 rec/i rec/r)]
            [k2 [x2] (invoke inc k3 rec/i)]
            [k3 [x3] (rec k2/x2 k3/x3)]
@@ -92,7 +92,7 @@
 
 ;; This version of each invokes host functions.
 (def each '[[each [f xs] (invoke seq k1 each/xs)]
-            [k1 [s] (branch k1/s body exit)]
+            [k1 [s] (if k1/s body exit)]
             [body [] (invoke first k2 each/xs)]
             [k2 [fst] (invoke next k3 each/xs)]
             [k3 [nxt] (invoke each/f k4 k2/fst)]
@@ -109,14 +109,14 @@
   ;; Factorial
   [fac [n k] (frec 1 2)]
   [frec [r i] (invoke <= fk1 frec/i fac/n)]
-  [fk1 [x1] (branch fk1/x1 fbody fexit)]
+  [fk1 [x1] (if fk1/x1 fbody fexit)]
   [fbody [] (invoke * fk2 frec/i frec/r)]
   [fk2 [x2] (invoke inc fk3 frec/i)]
   [fk3 [x3] (frec fk2/x2 fk3/x3)]
   [fexit [] (fac/k frec/r)]
   ;; Each (this version calls source functions)
   [each [f xs] (invoke seq ek1 each/xs)]
-  [ek1 [s] (branch ek1/s ebody eexit)]
+  [ek1 [s] (if ek1/s ebody eexit)]
   [ebody [] (invoke first ek2 each/xs)]
   [ek2 [fst] (invoke next ek3 each/xs)]
   [ek3 [nxt] (each/f ek2/fst ek4)]
