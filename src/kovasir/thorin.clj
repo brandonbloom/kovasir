@@ -6,7 +6,7 @@
           {}
           prog))
 
-(def ^:dynamic *trace* true)
+(def ^:dynamic *trace* false)
 
 (ns-unmap *ns* 'interp*)
 (defmulti interp* (fn [{:keys [env expr]}]
@@ -17,7 +17,10 @@
 (def boolean? (partial instance? Boolean))
 
 (defn literal? [x]
-  (or (number? x)
+  (or (nil? x)
+      (number? x)
+      (sequential? x) ;XXX
+      (fn? x)
       (boolean? x)))
 
 (defn lookup [env x]
@@ -30,7 +33,11 @@
 
 (defmethod interp* 'invoke [{[_ f k & args] :expr, :keys [env]}]
   {:env env
-   :expr (list k (apply (resolve f) (map #(lookup env %) args)))})
+   :expr (let [f (if (namespace f) ;XXX
+                   (lookup env f)
+                   (resolve f))
+               args (map #(lookup env %) args)]
+           (list k (apply f args)))})
 
 (defmethod interp* 'branch [{[_ b t f] :expr, :keys [env]}]
   {:env env
@@ -70,5 +77,19 @@
       )
 
   (interp fac '(fac 5)) ;=> 120
+
+)
+
+(def each '[[each [f xs] (invoke seq k1 each/xs)]
+            [k1 [s] (branch k1/s body exit)]
+            [body [] (invoke first k2 each/xs)]
+            [k2 [fst] (invoke next k3 each/xs)]
+            [k3 [nxt] (invoke each/f k4 k2/fst)]
+            [k4 [_] (each each/f k3/nxt)]
+            [exit [] (return nil)]])
+
+(comment
+
+  (interp each (list 'each prn [1 2 3]))
 
 )
