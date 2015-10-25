@@ -1,35 +1,71 @@
-(ns kovasir.dfg)
+(ns kovasir.dfg
+  (:refer-clojure :exclude [eval]))
+
+(defn make-env [prog]
+  (reduce (fn [env [label params expr]]
+            (assoc env label {:params params :expr expr}))
+          {}
+          prog))
+
+(defn literal? [x]
+  (number? x))
+
+(defn lookup [x env]
+  (if-let [ns (namespace x)]
+    (get-in env [(symbol ns) :bindings (-> x name symbol)])
+    (env x)))
+
+(defn code? [x]
+  (map? x)) ;XXX
+
+(defn nullary? [x]
+  (and (code? x) (-> x :params empty?)))
+
+(defmulti eval-seq (fn [xs env] (first xs)))
+
+(defn eval [x env]
+  (let [y (cond
+            (literal? x) x
+            (symbol? x) (lookup x env)
+            (seq? x) (eval-seq x env)
+            :else (throw (ex-info "can't eval" {:expr x})))]
+    (if (nullary? y)
+      (recur (:expr y) env)
+      y)))
+
+(defmethod eval-seq 'if [[_ b t f] env]
+  (if (eval b env)
+    (eval t env)
+    (eval f env)))
+
+(defmethod eval-seq 'invoke [[_ f & args] env]
+  (apply (resolve f) (map #(eval % env) args)))
+
+(defmethod eval-seq :default [[f & xs :as fxs] env]
+  (let [[{:keys [params expr]} & args] (map #(eval % env) fxs)]
+    (eval expr (assoc-in env [f :bindings] (zipmap params args)))))
+
+(defn interp [prog expr]
+  (eval expr (make-env prog)))
+
+(def fac '[[fac [n]   (rec 1 2)]
+           [rec [r i] (if b bod rec/r)]
+           [b   []    (invoke <= rec/i fac/n)]
+           [ri  []    (invoke * rec/r rec/i)]
+           [j   []    (invoke inc rec/i)]
+           [bod []    (rec ri j)]])
 
 (comment
 
-(party '(fn [n]
-          (loop [r 1 i 2]
-            (if (<= i n)
-              (recur (* r i) (inc i))
-              r))))
+  (-> fac
+      make-env
+      fipp.edn/pprint
+      )
 
-;; Associative input, associative output dataflow.
-{fac {:in [n]
-      :out [ret]
-      :flow {ret (rec 1 2)}}
- rec {:in [r i]
-      :out [z]
-      :flow {b (<= i n)
-             c (choose b t f)
-             z  (c)}}
- t {:in []
-    :out [x]
-    :flow {ri (* r i)
-           j (inc i)
-           x (rec ri j)}}
- f {:in []
-    :out [y]
-    :flow {y r}}}
-
-;; Sequential arguments and single-output dataflow.
-'[(fac n)   []                              (rec 1 2)
-  (rec r i) [b (<= i n), c (choose b t f)]  (c)
-  (t)       [ri (* r i), j (inc i)]         (rec ri j)
-  (f)       []                              (identity r)]
+  (fipp.edn/pprint
+    (interp fac '(fac 5))
+    )
 
 )
+
+;;; destination passing style?
