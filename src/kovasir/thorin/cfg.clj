@@ -1,6 +1,4 @@
-(ns kovasir.cfg)
-
-;; Inspiration: "A Graph-Based Higher-Order Intermediate Representation"
+(ns kovasir.thorin.cfg)
 
 (defrecord Node [id bound call])
 
@@ -48,7 +46,7 @@
             (add-node g [n]
             )
           ctx
-          (reverse xs)))
+          (reverse xs))))
 
 (defn root->cfg [root]
   (binding [*env* {}]

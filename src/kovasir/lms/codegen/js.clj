@@ -1,4 +1,4 @@
-(ns kovasir.codegen.js)
+(ns kovasir.lms.codegen.js)
 
 ;;TODO bring up to date w/ graph&schedule
 

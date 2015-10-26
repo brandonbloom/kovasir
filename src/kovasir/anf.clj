@@ -1,4 +1,5 @@
-(ns kovasir.anf)
+(ns kovasir.anf
+  "Converts the output of kovasir.parse to Administrative Normal Form")
 
 (defmulti anf :op)
 

@@ -1,4 +1,5 @@
-(ns kovasir.parse)
+(ns kovasir.parse
+  "Trivialized Clojure parser from EDN to AST.")
 
 (defmulti parse-seq first)
 
@@ -73,6 +74,7 @@
 
 (comment
 
+  (require 'fipp.edn)
   (defn party [x]
     (-> x parse fipp.edn/pprint))
 

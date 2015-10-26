@@ -1,4 +1,4 @@
-(ns kovasir.dfg
+(ns kovasir.hodfg.eval
   (:refer-clojure :exclude [eval]))
 
 (defn make-env [prog]
@@ -67,5 +67,3 @@
     )
 
 )
-
-;;; destination passing style?

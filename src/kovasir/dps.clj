@@ -1,4 +1,5 @@
-(ns kovasir.dps)
+(ns kovasir.dps
+  "Explorations of destination passing style.")
 
 ((fn [n]
   (loop [r 1 i 2]

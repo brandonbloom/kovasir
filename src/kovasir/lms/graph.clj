@@ -1,4 +1,4 @@
-(ns kovasir.graph)
+(ns kovasir.lms.graph)
 
 ;;TODO consider renaming to dataflow + creating a separate explicit control
 ;; flow graph before going to codegen. The control flow graph has basic blocks.

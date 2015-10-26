@@ -1,4 +1,4 @@
-(ns kovasir.thorin
+(ns kovasir.thorin.eval
   (:refer-clojure :exclude [eval]))
 
 (defn make-env [prog]

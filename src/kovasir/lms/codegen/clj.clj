@@ -1,5 +1,5 @@
-(ns kovasir.codegen.clj
-  (:require [kovasir.schedule :refer [schedule]]))
+(ns kovasir.lms.codegen.clj
+  (:require [kovasir.lms.schedule :refer [schedule]]))
 
 (defn ->sym [id]
   (if (number? id)

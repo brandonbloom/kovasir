@@ -1,4 +1,4 @@
-(ns kovasir.schedule
+(ns kovasir.lms.schedule
   (:require [clojure.set :as set]))
 
 (defn get-deps
