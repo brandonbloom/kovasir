@@ -161,7 +161,6 @@
     @v))
 
 
-;TODO return top-level block + unscheduled nodes, let codegen drive recursion
 (defn schedule [{:keys [nodes root] :as xx}]
   ;(println "-------")
   ;(fipp.edn/pprint xx)
