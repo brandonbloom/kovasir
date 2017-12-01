@@ -1,12 +1,13 @@
-(ns kovasir.open
-  (:require [kovasir.util :refer :all]))
+(ns kovasir.open.graph
+  (:require [kovasir.util :refer :all]
+            [kovasir.open.rt :as rt]))
 
 (def ^:dynamic *graph*)
 (def ^:dynamic *defs*)
 (def ^:dynamic *counter*)
 (def ^:dynamic *env* {})
 (def ^:dynamic *prompt* nil)
-(def ^:dynamic *params* {})
+(def ^:dynamic *params*)
 
 (defn genint []
   (change! *counter* inc))
@@ -28,7 +29,7 @@
 
 (defn dfg
   ([ast]
-   (-dfg (genint) ast))
+   (dfg (genint) ast))
   ([id ast]
    (-dfg id ast)))
 
@@ -38,7 +39,8 @@
 (defn program [ast]
   (binding [*graph* empty-graph
             *defs* {}
-            *counter* 0]
+            *counter* 0
+            *params* {}]
     (let [root (block ast)]
       {:graph *graph*
        :root root})))
@@ -47,17 +49,21 @@
   (bind id ast))
 
 (defn make-subst [fid args]
-  (into {} (map (fn [param arg]
-                  [param (dfg arg)])
-                (get *params* fid)
-                args)))
+  (let [params (*params* fid)]
+    (when-not params
+      (fail "params unknown" {:fid fid :*params* *params*}))
+    (when (not= (count params) (count args))
+      (fail "arity mismatch" {:params params :args args}))
+    (into {} (map (fn [param arg]
+                    [param (dfg arg)])
+                  params
+                  args))))
 
 (defmethod -dfg :call [id {:keys [f args]}]
-  (let [f (dfg f)
-        args (mapv dfg args)]
+  (let [f (dfg f)]
     (bind id
       (cond
-        (var? f) {:op :apply :f f :args args}
+        (var? f) {:op :apply :f f :args (mapv dfg args)}
         (number? f) {:op :eval
                      :expr f
                      :subst (make-subst f args)}
@@ -72,8 +78,8 @@
                     (node! (genint) {:op :param :name name}))
                   params)]
     (binding [*env* (into *env* (map vector params ids))
-              *prompt* id
-              *params* (assoc *params* id params)]
+              *prompt* id]
+      (change! *params* assoc id params)
       (dfg id expr))))
 
 (defmethod -dfg :loop [id {:keys [bindings expr]}]
@@ -81,22 +87,19 @@
            :f {:op :fn :params (mapv first bindings) :expr expr}
            :args (mapv second bindings)}))
 
-(defn if* [test then else]
-  (if test then else))
-
 (defmethod -dfg :if [id {:keys [test then else]}]
   (let [test (dfg test)
         then (block then)
         else (block else)]
     (bind id {:op :apply
-              :f (resolve `if*)
+              :f (resolve `rt/if*)
               :args [test then else]})))
 
 (defmethod -dfg :recur [id {:keys [args]}]
   (when-not *prompt*
     (fail "nowhere to recur to"))
   (bind id {:op :eval
-            :f *prompt*
+            :expr *prompt*
             :subst (make-subst *prompt* args)}))
 
 (comment
@@ -118,5 +121,12 @@
               (if (< i n)
                 (recur (conj dst i) (inc i))
                 dst))))
+
+  (party '((fn [n]
+             (loop [dst [], i 0]
+               (if (< i n)
+                 (recur (conj dst i) (inc i))
+                 dst)))
+           5))
 
   )
